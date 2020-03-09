@@ -1,0 +1,54 @@
+Assuming docker and gcloud sdk are installed; for installation guides follow
+https://docs.docker.com/install/
+https://cloud.google.com/sdk/install
+
+No need in Cloud SDK if the image is shared via Docker Hub:
+https://docs.docker.com/get-started/part5/
+
+Make sure the model is versioned (move model under a folder with a number).
+
+Preparing docker container
+
+1. docker pull tensorflow/serving
+
+2. docker run -d --name serving_base tensorflow/serving
+
+3. docker cp <path/to/model> serving_base:/models/<modelname>
+
+4. docker commit --change "ENV MODEL_NAME <modelname>" serving_base <image_name>
+
+5. docker kill serving_base & docker rm serving_base
+
+
+Checking server
+
+docker run -p 8501:8501 -t <image_name> &   # port 8500 for gRPC, 8501 for REST
+
+
+Pushing created image to Google Container Registry
+
+1. docker tag <image_name> gcr.io/<cloud_project_name>/<repository_name>:<tag>
+
+2. gcloud docker -- push gcr.io/<cloud_project_name>/<repository_name>:<tag>
+
+
+Alternative: pushing to Docker Hub
+
+1. docker tag <image_name> <docker_hub_id>/<repository_name>:<tag>
+
+2. docker push <docker_hub_id>/<repository_name>:<tag>
+
+
+Deploying via Google Kubernetes Engine
+
+1. Create cluster manually
+
+2. Connect to a cluster via Cloud Shell
+
+3. kubectl run <cluster_name> --image=gcr.io/<cloud_project_name>/<repository_name>:<tag> --port 8501
+
+4. kubectl get pods   # Check pods readiness / wait until ready
+
+5. kubectl expose deployment <cluster_name> --type=LoadBalancer --port 80 --target-port 8501
+
+6. kubectl get service  # Check deployment readiness / wait until ready, then use external IP for requests
